@@ -1,0 +1,36 @@
+//java -jar RandomWordStream.jar 9999 200 true
+
+import org.apache.spark.streaming._
+
+val ssc = new StreamingContext(sparkContext, Seconds(1))
+
+val lines = ssc.socketTextStream("localhost", 9999)
+
+val words = lines.flatMap(line => line.split(" "))
+  .map(word => (word, 1))
+
+//Feladat1
+//val wc = words.reduceByKey(_ + _)
+//wc.print()
+
+//Feladat2
+//val runningCounts = words.updateStateByKey(updateFunction _)
+//runningCounts.print()
+
+//Feladat3
+//val wc = words.transform(rdd => rdd.filter(f => f._1.charAt(0).toLower != 'b'))
+//  .reduceByKey(_ + _)
+//wc.print()
+
+//Feladat4
+val windowed = words.reduceByKeyAndWindow(
+  (a:Int, b:Int) => (a + b), Seconds(3), Seconds(1)
+)
+
+windowed.foreachRDD(
+  rdd => rdd.map(m => (m._1, (m._2 / 3)))
+)
+windowed.print();
+
+ssc.start()
+ssc.awaitTermination()
